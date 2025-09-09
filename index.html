@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NeuroFox Innovation Engine</title>
+<style>
+  :root{--bg:#071018;--panel:#0f1720;--accent:#00ffcc;--muted:#9aa7b2;}
+  body{font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:#e6f7f0;margin:0;padding:24px;box-sizing:border-box}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  .brand{font-weight:700;font-size:20px;color:var(--accent)}
+  .layout{display:grid;grid-template-columns:360px 1fr;gap:18px}
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:12px;border:1px solid rgba(0,255,204,0.06)}
+  label{display:block;margin-top:10px;color:var(--muted);font-size:13px}
+  input[type=range]{width:100%}
+  select,input[type=number],button,textarea{width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.06);background:transparent;color:#e6f7f0}
+  .small{font-size:12px;color:var(--muted)}
+  h2{margin:0 0 8px 0;color:var(--accent)}
+  .meters{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .meter{flex:1;min-width:120px;background:#081017;padding:10px;border-radius:8px;text-align:center}
+  .meter .v{font-weight:700;font-size:18px}
+  .templates{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+  .template{padding:8px 10px;border-radius:8px;background:#07131a;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+  .controls-row{display:flex;gap:8px;margin-top:12px}
+  .right-header{display:flex;gap:8px;align-items:center}
+  pre{white-space:pre-wrap;word-break:break-word;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;margin-top:8px}
+  footer{margin-top:12px;color:var(--muted);font-size:13px}
+  .suggestions{background:#071c1a;padding:10px;border-radius:8px;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">NeuroFox Innovation Engine</div>
+  <div class="right-header small">Prototype v1 · <span id="date"></span></div>
+</header>
+
+<div class="layout">
+  <div class="panel">
+    <h2>Designer Mode</h2>
+    <label>Template</label>
+    <div class="templates" id="templates">
+      <div class="template" onclick="loadTemplate('gpu')">Next-Gen GPU</div>
+      <div class="template" onclick="loadTemplate('console')">Console SoC</div>
+      <div class="template" onclick="loadTemplate('mobile')">Mobile GPU</div>
+      <div class="template" onclick="loadTemplate('robot')">Robot Brain</div>
+    </div>
+
+    <label>Compute Cores (thousands)</label>
+    <input id="cores" type="range" min="1" max="1024" value="128" oninput="updateAll()" />
+    <div class="small">Selected: <span id="coresVal">128k</span> cores</div>
+
+    <label>Clock (MHz)</label>
+    <input id="clock" type="range" min="300" max="5000" value="2500" oninput="updateAll()" />
+    <div class="small">Selected: <span id="clockVal">2500 MHz</span></div>
+
+    <label>Memory (GB)</label>
+    <input id="memory" type="range" min="2" max="1024" value="32" oninput="updateAll()" />
+    <div class="small">Selected: <span id="memoryVal">32 GB</span></div>
+
+    <label>Power Budget (W)</label>
+    <input id="power" type="range" min="10" max="2000" value="250" oninput="updateAll()" />
+    <div class="small">Selected: <span id="powerVal">250 W</span></div>
+
+    <label>Cooling Type</label>
+    <select id="cooling" onchange="updateAll()">
+      <option value="standard">Standard Air</option>
+      <option value="liquid">Advanced Liquid</option>
+      <option value="vapor">Vapor Chamber</option>
+      <option value="neurofox">NeuroFox Infinite Cooling</option>
+    </select>
+
+    <label>AI Assist Level</label>
+    <input id="aiLevel" type="range" min="0" max="100" value="50" oninput="updateAll()" />
+    <div class="small">Selected: <span id="aiVal">50%</span></div>
+
+    <label>Target Device</label>
+    <select id="device" onchange="updateAll()">
+      <option>Cloud / Data Center</option>
+      <option>Console</option>
+      <option>Laptop</option>
+      <option>Phone</option>
+      <option>Robot</option>
+    </select>
+
+    <label>Notes / Design Name</label>
+    <input id="designName" placeholder="e.g., NeuroFox-X1 Prototype" />
+
+    <div class="controls-row">
+      <button onclick="simulateDesign()">Simulate</button>
+      <button onclick="downloadDesign()">Export Design (JSON)</button>
+    </div>
+
+    <label class="small">Quick actions</label>
+    <div class="controls-row">
+      <button onclick="generateReport()">Generate Concept Report</button>
+      <button onclick="resetDefaults()">Reset</button>
+    </div>
+
+    <footer>
+      Tip: Start with a template, tweak sliders, then simulate. Use report for patent/notes.
+    </footer>
+  </div>
+
+  <div class="panel">
+    <h2>Real-Time Feedback & Metrics</h2>
+    <div class="meters">
+      <div class="meter">
+        <div class="small">Estimated FPS (AAA)</div>
+        <div class="v" id="fps">0</div>
+      </div>
+      <div class="meter">
+        <div class="small">Thermal Stability</div>
+        <div class="v" id="stability">0%</div>
+      </div>
+      <div class="meter">
+        <div class="small">Energy Efficiency</div>
+        <div class="v" id="eff">0%</div>
+      </div>
+      <div class="meter">
+        <div class="small">AI Throughput</div>
+        <div class="v" id="aiTP">0 TOPS</div>
+      </div>
+      <div class="meter">
+        <div class="small">Feasibility Score</div>
+        <div class="v" id="feas">0/100</div>
+      </div>
+    </div>
+
+    <h2>AI Research Assistant</h2>
+    <div class="suggestions" id="suggestions">
+      <div class="small">No simulation run yet. Click <b>Simulate</b> to get AI guidance.</div>
+    </div>
+
+    <h2>Design Log / Concept Report Preview</h2>
+    <pre id="reportPreview">No report generated yet.</pre>
+  </div>
+</div>
+
+<script>
+  document.getElementById('date').innerText = new Date().toLocaleDateString();
+
+  function updateAll(){
+    document.getElementById('coresVal').innerText = document.getElementById('cores').value + 'k';
+    document.getElementById('clockVal').innerText = document.getElementById('clock').value + ' MHz';
+    document.getElementById('memoryVal').innerText = document.getElementById('memory').value + ' GB';
+    document.getElementById('powerVal').innerText = document.getElementById('power').value + ' W';
+    document.getElementById('aiVal').innerText = document.getElementById('aiLevel').value + '%';
+  }
+
+  function loadTemplate(key){
+    if(key==='gpu'){
+      document.getElementById('cores').value = 256;
+      document.getElementById('clock').value = 2200;
+      document.getElementById('memory').value = 48;
+      document.getElementById('power').value = 350;
+      document.getElementById('cooling').value = 'neurofox';
+      document.getElementById('aiLevel').value = 70;
+      document.getElementById('device').value = 'Console';
+      document.getElementById('designName').value = 'NeuroFox-GX Prototype';
+    } else if(key==='console'){
+      document.getElementById('cores').value = 128;
+      document.getElementById('clock').value = 1800;
+      document.getElementById('memory').value = 24;
+      document.getElementById('power').value = 200;
+      document.getElementById('cooling').value = 'vapor';
+      document.getElementById('aiLevel').value = 50;
+      document.getElementById('device').value = 'Console';
+      document.getElementById('designName').value = 'NeuroFox-Console-X';
+    } else if(key==='mobile'){
+      document.getElementById('cores').value = 32;
+      document.getElementById('clock').value = 1200;
+      document.getElementById('memory').value = 8;
+      document.getElementById('power').value = 25;
+      document.getElementById('cooling').value = 'liquid';
+      document.getElementById('aiLevel').value = 60;
+      document.getElementById('device').value = 'Phone';
+      document.getElementById('designName').value = 'NeuroFox-Mobile-Proto';
+    } else if(key==='robot'){
+      document.getElementById('cores').value = 64;
+      document.getElementById('clock').value = 1500;
+      document.getElementById('memory').value = 16;
+      document.getElementById('power').value = 120;
+      document.getElementById('cooling').value = 'vapor';
+      document.getElementById('aiLevel').value = 80;
+      document.getElementById('device').value = 'Robot';
+      document.getElementById('designName').value = 'NeuroFox-Robo-Core';
+    }
+    updateAll();
+    simulateDesign();
+  }
+
+  function simulateDesign(){
+    // read values
+    const cores = Number(document.getElementById('cores').value);
+    const clock = Number(document.getElementById('clock').value);
+    const mem = Number(document.getElementById('memory').value);
+    const power = Number(document.getElementById('power').value);
+    const cooling = document.getElementById('cooling').value;
+    const aiLevel = Number(document.getElementById('aiLevel').value);
+    const device = document.getElementById('device').value;
+
+    // simple physics-based heuristics (not real)
+    const rawCompute = cores * clock / 1000; // arbitrary units
+    const memoryFactor = Math.log2(mem+1);
+    const aiThroughput = Math.round((rawCompute * (aiLevel/100)) / 10); // TOPS-like proxy
+    let coolingMultiplier = 1;
+    if(cooling==='standard') coolingMultiplier = 0.6;
+    if(cooling==='liquid') coolingMultiplier = 0.8;
+    if(cooling==='vapor') coolingMultiplier = 0.9;
+    if(cooling==='neurofox') coolingMultiplier = 1.25;
+
+    const thermalHeadroom = Math.max(0, (power/ (rawCompute*0.1)) * coolingMultiplier);
+    const fps = Math.round((rawCompute * memoryFactor * coolingMultiplier) / (device==='Phone'?3: (device==='Laptop'?1.5:1)));
+    const stability = Math.min(100, Math.round(thermalHeadroom*10));
+    const efficiency = Math.min(100, Math.round((mem*coolingMultiplier*0.8)));
+    const feasibility = Math.max(0, Math.min(100, Math.round((stability*0.6 + efficiency*0.3 + (aiLevel*0.1))/1.2)));
+
+    // update UI
+    document.getElementById('fps').innerText = fps + ' fps';
+    document.getElementById('stability').innerText = stability + '%';
+    document.getElementById('eff').innerText = efficiency + '%';
+    document.getElementById('aiTP').innerText = aiThroughput + ' TOPS';
+    document.getElementById('feas').innerText = feasibility + '/100';
+
+    // AI Research Assistant suggestions
+    const suggestions = [];
+    if(stability < 50) suggestions.push('Increase cooling capacity or reduce clock speed to avoid thermal throttling.');
+    else suggestions.push('Thermal stability is strong — consider increasing clock by 5-10% for extra performance.');
+
+    if(efficiency < 40) suggestions.push('Add more memory or improve energy harvesting to raise efficiency.');
+    else suggestions.push('Energy efficiency is healthy for this configuration.');
+
+    if(aiLevel < 40) suggestions.push('Boost AI Assist to improve real-time optimization and frame pacing.');
+    else suggestions.push('AI Assist level is good — use it to tune rendering pipelines.');
+
+    if(feasibility < 30) suggestions.push('This design is high-risk. Validate with physical prototyping and targeted thermal tests.');
+    else if(feasibility < 60) suggestions.push('Moderate feasibility. Run lab tests and incremental hardware proofs.');
+    else suggestions.push('Design appears feasible; prioritize IP protection and controlled pilot testing.');
+
+    // self-healing & energy messages
+    if(cooling==='neurofox') suggestions.push('NeuroFox cooling shows advantage — document patents and thermal models.');
+    if(aiLevel>70) suggestions.push('AI Co-Pilot can auto-tune power/perf profiles for extended stability.');
+
+    // display suggestions
+    let sugHtml = '<ul>';
+    for(const s of suggestions) sugHtml += '<li>' + s + '</li>';
+    sugHtml += '</ul>';
+    document.getElementById('suggestions').innerHTML = sugHtml;
+
+    // report preview
+    const report = {
+      designName: document.getElementById('designName').value || ('NeuroFox-Design-' + Date.now()),
+      date: new Date().toISOString(),
+      device: device,
+      cores_k: cores,
+      clock_mhz: clock,
+      memory_gb: mem,
+      power_w: power,
+      cooling: cooling,
+      aiAssist_pct: aiLevel,
+      metrics: {
+        fps: fps,
+        stability_pct: stability,
+        efficiency_pct: efficiency,
+        ai_throughput_tops: aiThroughput,
+        feasibility: feasibility
+      },
+      suggestions: suggestions
+    };
+    document.getElementById('reportPreview').innerText = JSON.stringify(report, null, 2);
+    // store lastReport
+    window.lastReport = report;
+  }
+
+  function downloadDesign(){
+    const data = window.lastReport || {};
+    const filename = (data.designName || 'neurofox_design') + '.json';
+    const blob = new Blob([JSON.stringify(data, null, 2)], {type: 'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename; document.body.appendChild(a); a.click();
+    a.remove(); URL.revokeObjectURL(url);
+  }
+
+  function generateReport(){
+    const rep = window.lastReport;
+    if(!rep){ alert('Run a simulation first.'); return; }
+    const lines = [];
+    lines.push('NeuroFox Concept Report');
+    lines.push('Design: ' + (rep.designName || 'Unnamed'));
+    lines.push('Date: ' + rep.date);
+    lines.push('');
+    lines.push('Target Device: ' + rep.device);
+    lines.push('Cores (k): ' + rep.cores_k);
+    lines.push('Clock (MHz): ' + rep.clock_mhz);
+    lines.push('Memory (GB): ' + rep.memory_gb);
+    lines.push('Power Budget (W): ' + rep.power_w);
+    lines.push('Cooling Type: ' + rep.cooling);
+    lines.push('AI Assist: ' + rep.aiAssist_pct + '%');
+    lines.push('');
+    lines.push('--- Metrics ---');
+    lines.push('Estimated FPS (AAA): ' + rep.metrics.fps + ' fps');
+    lines.push('Thermal Stability: ' + rep.metrics.stability_pct + '%');
+    lines.push('Energy Efficiency: ' + rep.metrics.efficiency_pct + '%');
+    lines.push('AI Throughput: ' + rep.metrics.ai_throughput_tops + ' TOPS (proxy)');
+    lines.push('Feasibility Score: ' + rep.metrics.feasibility + '/100');
+    lines.push('');
+    lines.push('--- AI Suggestions ---');
+    for(const s of rep.suggestions) lines.push('- ' + s);
+    lines.push('');
+    lines.push('Prepared by: NeuroFox Innovation Engine');
+    const txt = lines.join('\n');
+    const blob = new Blob([txt], {type:'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = (rep.designName || 'neurofox_report') + '.txt';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+
+  function resetDefaults(){
+    document.getElementById('cores').value = 128;
+    document.getElementById('clock').value = 2500;
+    document.getElementById('memory').value = 32;
+    document.getElementById('power').value = 250;
+    document.getElementById('cooling').value = 'neurofox';
+    document.getElementById('aiLevel').value = 50;
+    document.getElementById('device').value = 'Cloud / Data Center';
+    document.getElementById('designName').value = '';
+    updateAll();
+    simulateDesign();
+  }
+
+  // initialize
+  updateAll();
+  simulateDesign();
+
+</script>
+</body>
+</html>
